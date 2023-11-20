@@ -71,6 +71,7 @@ Following inputs can be used as `step.with` keys
 | `codedeploy_group`         | Yes      | String  | CodeDeploy Project Group.                                       |
 | `codedeploy_config_name`   | No       | String  | If provided, override the default CodeDeploy Configuration name |
 | `codedeploy_register_only` | No       | Boolean | If true, revision is registered not deployed.                   |
+| `codedeploy_deploy_only`   | No       | Boolean | If true, revision is registered not deployed.                   |
 | `s3_bucket`                | Yes      | String  | S3 Bucket for archive to be uploaded.                           |
 | `s3_folder`                | Yes      | String  | S3 Folder for archive to be uploaded within bucket.             |
 | `excluded_files`           | No       | String  | Space delimited list of patterns to exclude from archive        |
