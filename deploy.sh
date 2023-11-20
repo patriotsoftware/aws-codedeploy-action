@@ -80,7 +80,7 @@ function pollForSpecificDeployment() {
             echo -e "${RED}Max polling iterations reached (max_polling_iterations)."
             exit 1;
         fi
-        sleep 15s;
+        sleep 30s;
     done;
 }
 
