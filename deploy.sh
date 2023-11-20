@@ -135,92 +135,96 @@ if [ -n "$INPUT_AWS_REGION" ]; then
     export AWS_DEFAULT_REGION=$INPUT_AWS_REGION
 fi
 
-# 2) Zip up the package, if no archive given
-if [ -z "$INPUT_ARCHIVE" ]; then
-
-    DIR_TO_ZIP="./$INPUT_DIRECTORY"
-    if [ ! -f "$DIR_TO_ZIP/appspec.yml" ]; then
-        echo "::error::appspec.yml was not located at: $DIR_TO_ZIP"
-        exit 1;
-    fi
-
-    echo "::debug::Zip directory located (with appspec.yml)."
-
-    ZIP_FILENAME=$GITHUB_RUN_ID-$GITHUB_SHA.zip
-
-    # This creates a temp file to explode space delimited excluded files
-    # into newline delimited exclusions passed to "-x" on the zip command.
-    EXCLUSION_FILE=$(mktemp /tmp/zip-excluded.XXXXXX)
-    echo "$INPUT_EXCLUDED_FILES" | tr ' ' '\n' > "$EXCLUSION_FILE"
-
-    echo "::debug::Exclusion file created for files to ignore in Zip Generation."
-
-    if [ -n "$DIR_TO_ZIP" ]; then
-        cd "$DIR_TO_ZIP";
-    fi
-
-    # shellcheck disable=SC2086
-    zip $INPUT_CUSTOM_ZIP_FLAGS -r --quiet "$ZIP_FILENAME" . -x "@$EXCLUSION_FILE"
-    if [ ! -f "$ZIP_FILENAME" ]; then
-        echo "::error::$ZIP_FILENAME was not generated properly (zip generation failed)."
-        exit 1;
-    fi
-
-    echo "::debug::Zip Archive created."
+if $INPUT_CODEDEPLOY_DEPLOY_ONLY; then
+    echo "Skipping Upload of artifact, only deploying."
 else
-    echo "::debug::$INPUT_ARCHIVE being using as zip filename. Skipping generation of ZIP."
-    ZIP_FILENAME="$INPUT_ARCHIVE"
-fi
-
-
-BUNDLE_TYPE=''
-# permitted values for BUNDLE_TYPE can be found here: https://docs.aws.amazon.com/codedeploy/latest/userguide/application-revisions-push.html#push-with-cli
-case "$ZIP_FILENAME" in
-    *.tar)
-        BUNDLE_TYPE=tar
-        ;;
-    *.tar.gz)
-        BUNDLE_TYPE=tgz
-        ;;
-    *)
-        # assume it's a zipfile
-        BUNDLE_TYPE=zip
-        ;;
-esac
-
-if [ "$BUNDLE_TYPE" == 'zip' ]; then
-    if [ "$(unzip -l "$ZIP_FILENAME" | grep -q appspec.yml)" = "0" ]; then
-        echo "::error::$ZIP_FILENAME was not generated properly (missing appspec.yml)."
-        exit 1;
+    # 2) Zip up the package, if no archive given
+    if [ -z "$INPUT_ARCHIVE" ]; then
+    
+        DIR_TO_ZIP="./$INPUT_DIRECTORY"
+        if [ ! -f "$DIR_TO_ZIP/appspec.yml" ]; then
+            echo "::error::appspec.yml was not located at: $DIR_TO_ZIP"
+            exit 1;
+        fi
+    
+        echo "::debug::Zip directory located (with appspec.yml)."
+    
+        ZIP_FILENAME=$GITHUB_RUN_ID-$GITHUB_SHA.zip
+    
+        # This creates a temp file to explode space delimited excluded files
+        # into newline delimited exclusions passed to "-x" on the zip command.
+        EXCLUSION_FILE=$(mktemp /tmp/zip-excluded.XXXXXX)
+        echo "$INPUT_EXCLUDED_FILES" | tr ' ' '\n' > "$EXCLUSION_FILE"
+    
+        echo "::debug::Exclusion file created for files to ignore in Zip Generation."
+    
+        if [ -n "$DIR_TO_ZIP" ]; then
+            cd "$DIR_TO_ZIP";
+        fi
+    
+        # shellcheck disable=SC2086
+        zip $INPUT_CUSTOM_ZIP_FLAGS -r --quiet "$ZIP_FILENAME" . -x "@$EXCLUSION_FILE"
+        if [ ! -f "$ZIP_FILENAME" ]; then
+            echo "::error::$ZIP_FILENAME was not generated properly (zip generation failed)."
+            exit 1;
+        fi
+    
+        echo "::debug::Zip Archive created."
+    else
+        echo "::debug::$INPUT_ARCHIVE being using as zip filename. Skipping generation of ZIP."
+        ZIP_FILENAME="$INPUT_ARCHIVE"
     fi
-else
-    if ! tar -tf "$ZIP_FILENAME" | grep -q appspec.yml; then
-        echo "::error::$ZIP_FILENAME was not generated properly (missing appspec.yml)."
-        exit 1;
+    
+    
+    BUNDLE_TYPE=''
+    # permitted values for BUNDLE_TYPE can be found here: https://docs.aws.amazon.com/codedeploy/latest/userguide/application-revisions-push.html#push-with-cli
+    case "$ZIP_FILENAME" in
+        *.tar)
+            BUNDLE_TYPE=tar
+            ;;
+        *.tar.gz)
+            BUNDLE_TYPE=tgz
+            ;;
+        *)
+            # assume it's a zipfile
+            BUNDLE_TYPE=zip
+            ;;
+    esac
+    
+    if [ "$BUNDLE_TYPE" == 'zip' ]; then
+        if [ "$(unzip -l "$ZIP_FILENAME" | grep -q appspec.yml)" = "0" ]; then
+            echo "::error::$ZIP_FILENAME was not generated properly (missing appspec.yml)."
+            exit 1;
+        fi
+    else
+        if ! tar -tf "$ZIP_FILENAME" | grep -q appspec.yml; then
+            echo "::error::$ZIP_FILENAME was not generated properly (missing appspec.yml)."
+            exit 1;
+        fi
     fi
+    
+    echo "::debug::Zip Archived validated."
+    echo "zip_filename=$ZIP_FILENAME" >> "$GITHUB_OUTPUT"
+    
+    # 3) Upload the deployment to S3, drop old archive.
+    if "$INPUT_DRY_RUN"; then
+        echo "::debug::Dry Run detected. Exiting."
+        exit 0;
+    fi
+    
+    aws s3 cp "$ZIP_FILENAME" s3://"$INPUT_S3_BUCKET"/"$INPUT_S3_FOLDER"/"$ZIP_FILENAME"
+    
+    echo "::debug::Zip uploaded to S3."
+    
+    ZIP_ETAG=$(getArchiveETag)
+    
+    echo "::debug::Obtained ETag of uploaded S3 Zip Archive."
+    echo "etag=$ZIP_ETAG" >> "$GITHUB_OUTPUT"
+    
+    rm "$ZIP_FILENAME"
+    
+    echo "::debug::Removed old local ZIP Archive."
 fi
-
-echo "::debug::Zip Archived validated."
-echo "zip_filename=$ZIP_FILENAME" >> "$GITHUB_OUTPUT"
-
-# 3) Upload the deployment to S3, drop old archive.
-if "$INPUT_DRY_RUN"; then
-    echo "::debug::Dry Run detected. Exiting."
-    exit 0;
-fi
-
-aws s3 cp "$ZIP_FILENAME" s3://"$INPUT_S3_BUCKET"/"$INPUT_S3_FOLDER"/"$ZIP_FILENAME"
-
-echo "::debug::Zip uploaded to S3."
-
-ZIP_ETAG=$(getArchiveETag)
-
-echo "::debug::Obtained ETag of uploaded S3 Zip Archive."
-echo "etag=$ZIP_ETAG" >> "$GITHUB_OUTPUT"
-
-rm "$ZIP_FILENAME"
-
-echo "::debug::Removed old local ZIP Archive."
 
 # 4) Start the CodeDeploy
 pollForActiveDeployments
