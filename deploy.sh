@@ -18,7 +18,7 @@ function getArchiveETag() {
 function deployRevision() {
     aws deploy create-deployment "$@" \
         --application-name "$INPUT_CODEDEPLOY_NAME" \
-        --deployment-group-name "$INPUT_CODEDEPLOY_GROUP" \
+        --deployment-group-name "$INPUT_CODEDEPLOY_GROUP" 
         --description "$GITHUB_REF - $GITHUB_SHA" \
         --s3-location bucket="$INPUT_S3_BUCKET",bundleType="zip",key="$INPUT_S3_FOLDER"/"$ZIP_FILENAME" | jq -r '.deploymentId'
 }
@@ -247,7 +247,7 @@ else
     if [ "$INPUT_MAX_POLLING_ITERATIONS" -eq "0" ]; then
         echo -e "${BLUE}Iterations at 0. GitHub Action ending, but deployment in-progress to: ${RESET_TEXT}$INPUT_CODEDEPLOY_GROUP.";
     else
-        sleep 10;
+        sleep 30;
         pollForSpecificDeployment "$DEPLOYMENT_ID"
         echo -e "${GREEN}Deployed to ${RESET_TEXT}$INPUT_CODEDEPLOY_GROUP!";
     fi
