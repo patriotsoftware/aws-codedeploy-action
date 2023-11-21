@@ -58,7 +58,7 @@ function pollForSpecificDeployment() {
         PENDING_COUNT=$(echo "$RESPONSE" | jq -r '.deploymentInfo.deploymentOverview.Pending')
         STATUS=$(echo "$RESPONSE" | jq -r '.deploymentInfo.status')
 
-        echo -e "${ORANGE}Deployment in progress. Sleeping 15 seconds. (Try $((++deadlockCounter)))";
+        echo -e "${ORANGE}Deployment in progress. Sleeping 30 seconds. (Try $((++deadlockCounter)))";
         echo -e "Instance Overview: ${RED}Failed ($FAILED_COUNT), ${BLUE}In-Progress ($IN_PROGRESS_COUNT), ${RESET_TEXT}Skipped ($SKIPPED_COUNT), ${BLUE}Pending ($PENDING_COUNT), ${GREEN}Succeeded ($SUCCESS_COUNT)"
         echo -e "Deployment Status: $STATUS"
 
@@ -87,13 +87,13 @@ function pollForSpecificDeployment() {
 function pollForActiveDeployments() {
     deadlockCounter=0;
     while [ "$(getActiveDeployments)" != "[]" ]; do
-        echo -e "${ORANGE}Deployment in progress. Sleeping 15 seconds. (Try $((++deadlockCounter)))";
+        echo -e "${ORANGE}Deployment in progress. Sleeping 30 seconds. (Try $((++deadlockCounter)))";
 
         if [ "$deadlockCounter" -gt "$INPUT_MAX_POLLING_ITERATIONS" ]; then
             echo -e "${RED}Max polling iterations reached (max_polling_iterations)."
             exit 1;
         fi
-        sleep 15s;
+        sleep 30;
     done;
 }
 
