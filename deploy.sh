@@ -11,8 +11,8 @@ BLUE='\033[0;34m'
 function getArchiveETag() {
     aws s3api head-object \
      --bucket "$INPUT_S3_BUCKET" \
-     --key "$INPUT_S3_FOLDER"/"$ZIP_FILENAME" \
-     --query ETag --output text
+     --key "$ZIP_FILENAME" \
+     --output text
 }
 
 function deployRevision() {
