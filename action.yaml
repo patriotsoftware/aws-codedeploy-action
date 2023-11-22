@@ -50,7 +50,7 @@ inputs:
   max_polling_iterations:
     description: 'Max amount of iterations (15s increments) to wait for a deployment'
     required: false
-    default: '60'
+    default: '160'
   dry_run:
     description: 'Whether to skip all AWS related steps.'
     required: false
