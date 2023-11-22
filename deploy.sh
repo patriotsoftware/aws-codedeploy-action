@@ -16,7 +16,8 @@ function getArchiveETag() {
 }
 
 function deployRevision() {
-    if [ -z "$INPUT_S3_FOLDER" ] then
+    if [ -z "$INPUT_S3_FOLDER" ];
+    then
         file_path="$ZIP_FILENAME"
     else
         file_path="$INPUT_S3_FOLDER"/"$ZIP_FILENAME"
@@ -30,7 +31,8 @@ function deployRevision() {
 }
 
 function registerRevision() {
-    if [ -z "$INPUT_S3_FOLDER" ] then
+    if [ -z "$INPUT_S3_FOLDER" ]; 
+    then
         file_path="$ZIP_FILENAME"
     else
         file_path="$INPUT_S3_FOLDER"/"$ZIP_FILENAME"
