@@ -16,18 +16,11 @@ function getArchiveETag() {
 }
 
 function deployRevision() {
-    if [ -z "$INPUT_S3_FOLDER" ];
-    then
-        file_path="$ZIP_FILENAME"
-    else
-        file_path="$INPUT_S3_FOLDER/$ZIP_FILENAME"
-    fi
-    echo "$file_path !!!!!!!!!!!!"
-    # aws deploy create-deployment "$@" \
-    #     --application-name "$INPUT_CODEDEPLOY_NAME" \
-    #     --deployment-group-name "$INPUT_CODEDEPLOY_GROUP" \
-    #     --description "$GITHUB_REF - $GITHUB_SHA" \
-    #     --s3-location bucket="$INPUT_S3_BUCKET",bundleType="zip",key="$file_path" | jq -r '.deploymentId'
+    aws deploy create-deployment "$@" \
+        --application-name "$INPUT_CODEDEPLOY_NAME" \
+        --deployment-group-name "$INPUT_CODEDEPLOY_GROUP" \
+        --description "$GITHUB_REF - $GITHUB_SHA" \
+        --s3-location bucket="$INPUT_S3_BUCKET",bundleType="zip",key="$INPUT_ARCHIVE" | jq -r '.deploymentId'
 }
 
 function registerRevision() {
