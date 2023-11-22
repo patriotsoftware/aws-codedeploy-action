@@ -16,18 +16,30 @@ function getArchiveETag() {
 }
 
 function deployRevision() {
+    if [ -z "$INPUT_S3_FOLDER" ]
+        file_path="$ZIP_FILENAME"
+    else
+        file_path="$INPUT_S3_FOLDER"/"$ZIP_FILENAME"
+    fi
+    echo "$file_path !!!!!!!!!!!!"
     aws deploy create-deployment "$@" \
         --application-name "$INPUT_CODEDEPLOY_NAME" \
         --deployment-group-name "$INPUT_CODEDEPLOY_GROUP" \
         --description "$GITHUB_REF - $GITHUB_SHA" \
-        --s3-location bucket="$INPUT_S3_BUCKET",bundleType="zip",key="$ZIP_FILENAME" | jq -r '.deploymentId'
+        --s3-location bucket="$INPUT_S3_BUCKET",bundleType="zip",key="$file_path" | jq -r '.deploymentId'
 }
 
 function registerRevision() {
+    if [ -z "$INPUT_S3_FOLDER" ]
+        file_path="$ZIP_FILENAME"
+    else
+        file_path="$INPUT_S3_FOLDER"/"$ZIP_FILENAME"
+    fi
+    echo "$file_path !!!!!!!!!!!!"
     aws deploy register-application-revision \
         --application-name "$INPUT_CODEDEPLOY_NAME" \
         --description "$GITHUB_REF - $GITHUB_SHA" \
-        --s3-location bucket="$INPUT_S3_BUCKET",bundleType="zip",key="$ZIP_FILENAME" > /dev/null 2>&1
+        --s3-location bucket="$INPUT_S3_BUCKET",bundleType="zip",key="$file_path" > /dev/null 2>&1
 }
 
 function getActiveDeployments() {
@@ -212,7 +224,7 @@ else
         exit 0;
     fi
     
-    aws s3 cp "$ZIP_FILENAME" s3://"$INPUT_S3_BUCKET"/"$ZIP_FILENAME"
+    aws s3 cp "$ZIP_FILENAME" s3://"$INPUT_S3_BUCKET"/"$INPUT_S3_FOLDER"/"$ZIP_FILENAME"
     
     echo "::debug::Zip uploaded to S3."
     
