@@ -11,7 +11,7 @@ BLUE='\033[0;34m'
 function getArchiveETag() {
     aws s3api head-object \
      --bucket "$INPUT_S3_BUCKET" \
-     --key "$ZIP_FILENAME" \
+     --key "$INPUT_S3_FOLDER"/"$ZIP_FILENAME" \
      --query ETag --output text
 }
 
@@ -20,14 +20,14 @@ function deployRevision() {
         --application-name "$INPUT_CODEDEPLOY_NAME" \
         --deployment-group-name "$INPUT_CODEDEPLOY_GROUP" \
         --description "$GITHUB_REF - $GITHUB_SHA" \
-        --s3-location bucket="$INPUT_S3_BUCKET",bundleType="zip",key="$ZIP_FILENAME" | jq -r '.deploymentId'
+        --s3-location bucket="$INPUT_S3_BUCKET",bundleType="zip",key="$INPUT_S3_FOLDER"/"$ZIP_FILENAME" | jq -r '.deploymentId'
 }
 
 function registerRevision() {
     aws deploy register-application-revision \
         --application-name "$INPUT_CODEDEPLOY_NAME" \
         --description "$GITHUB_REF - $GITHUB_SHA" \
-        --s3-location bucket="$INPUT_S3_BUCKET",bundleType="$BUNDLE_TYPE",eTag="$ZIP_ETAG",key="$ZIP_FILENAME" > /dev/null 2>&1
+        --s3-location bucket="$INPUT_S3_BUCKET",bundleType="$BUNDLE_TYPE",eTag="$ZIP_ETAG",key="$INPUT_S3_FOLDER"/"$ZIP_FILENAME" > /dev/null 2>&1
 }
 
 function getActiveDeployments() {
@@ -212,7 +212,7 @@ else
         exit 0;
     fi
     
-    aws s3 cp "$ZIP_FILENAME" s3://"$INPUT_S3_BUCKET"/"$ZIP_FILENAME"
+    aws s3 cp "$ZIP_FILENAME" s3://"$INPUT_S3_BUCKET"/"$INPUT_S3_FOLDER"/"$ZIP_FILENAME"
     
     echo "::debug::Zip uploaded to S3."
     
