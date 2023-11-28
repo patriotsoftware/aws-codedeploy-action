@@ -76,7 +76,7 @@ function pollForSpecificDeployment() {
             break;
         fi
 
-        if [ "$deadlockCounter" -gt "$INPUT_MAX_POLLING_ITERATIONS" ]; then
+        if [ "$deadlockCounter" -gt 100 ]; then
             echo -e "${RED}Max polling iterations reached (max_polling_iterations)."
             exit 1;
         fi
